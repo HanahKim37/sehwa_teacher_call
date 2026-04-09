@@ -22,8 +22,8 @@ function playChimeAndAnnounce(teacherNames = []) {
       gain.connect(ctx.destination);
       osc.frequency.value = freqs[i];
       osc.type = 'sine';
-      gain.gain.setValueAtTime(0.35, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.55);
+      gain.gain.setValueAtTime(1.0, ctx.currentTime + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.7);
       osc.start(ctx.currentTime + t);
       osc.stop(ctx.currentTime + t + 0.6);
     });

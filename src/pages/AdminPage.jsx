@@ -16,10 +16,10 @@ function GroupsTab() {
 
   const [form, setForm] = useState({
     departmentName: '', displayDurationSeconds: 30,
-    code: '', teacherNames: '',
+    code: '', teacherNames: '', callMode: 'modal',
   });
   const [editForm, setEditForm] = useState({
-    departmentName: '', displayDurationSeconds: 30, code: '', addTeacherNames: '',
+    departmentName: '', displayDurationSeconds: 30, code: '', addTeacherNames: '', callMode: 'modal',
   });
 
   useEffect(() => {
@@ -47,6 +47,7 @@ function GroupsTab() {
         groupName: trimCode,
         departmentName: deptName,
         displayDurationSeconds: Number(form.displayDurationSeconds) || 30,
+        callMode: form.callMode || 'modal',
         allowStudentNameInput: true, allowAnonymousCall: true, useSound: true,
         createdAt: serverTimestamp(),
       });
@@ -64,7 +65,7 @@ function GroupsTab() {
           createdAt: serverTimestamp(),
         });
       }
-      setForm({ departmentName: '', displayDurationSeconds: 30, code: '', teacherNames: '' });
+      setForm({ departmentName: '', displayDurationSeconds: 30, code: '', teacherNames: '', callMode: 'modal' });
     } catch (err) { console.error(err); }
     setLoading(false);
   }
@@ -77,6 +78,7 @@ function GroupsTab() {
       displayDurationSeconds: g.displayDurationSeconds || 30,
       code: groupCode?.code || '',
       addTeacherNames: '',
+      callMode: g.callMode || 'modal',
     });
   }
 
@@ -97,6 +99,7 @@ function GroupsTab() {
       await updateDoc(doc(db, 'displayGroups', g.id), {
         departmentName: editForm.departmentName.trim() || g.groupName,
         displayDurationSeconds: Number(editForm.displayDurationSeconds) || 30,
+        callMode: editForm.callMode || 'modal',
       });
       if (groupCode) {
         await updateDoc(doc(db, 'accessCodes', groupCode.id), {
@@ -154,6 +157,31 @@ function GroupsTab() {
             <option value={60}>60초</option><option value={120}>120초</option>
             <option value={300}>300초 (5분)</option>
           </select>
+        </div>
+        <div className="form-group">
+          <label>호출 방식</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { value: 'modal', label: '이름 입력 후 호출', desc: '팝업창에서 학생 이름 입력 → 호출' },
+              { value: 'instant', label: '즉시 호출', desc: '선생님 이름 누르면 바로 호출' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm(p => ({ ...p, callMode: opt.value }))}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                  border: `2px solid ${form.callMode === opt.value ? 'var(--accent)' : 'var(--border)'}`,
+                  background: form.callMode === opt.value ? 'rgba(59,130,246,0.12)' : 'var(--bg3)',
+                  color: form.callMode === opt.value ? 'var(--text)' : 'var(--text3)',
+                  textAlign: 'left', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: 3 }}>{opt.label}</div>
+                <div style={{ fontSize: '0.72rem', opacity: 0.7 }}>{opt.desc}</div>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="form-group">
           <label>선생님 이름 (공백으로 구분, 여러 명 가능)</label>
@@ -239,6 +267,30 @@ function GroupsTab() {
                     <div className="form-group" style={{ marginBottom: 0 }}>
                       <label>선생님 추가 (공백 구분)</label>
                       <input className="form-input" value={editForm.addTeacherNames} onChange={e => setEditForm(p => ({ ...p, addTeacherNames: e.target.value }))} placeholder="박민준 최서연" />
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label>호출 방식</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[
+                        { value: 'modal', label: '이름 입력 후 호출' },
+                        { value: 'instant', label: '즉시 호출' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setEditForm(p => ({ ...p, callMode: opt.value }))}
+                          style={{
+                            flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
+                            border: `2px solid ${editForm.callMode === opt.value ? 'var(--accent)' : 'var(--border)'}`,
+                            background: editForm.callMode === opt.value ? 'rgba(59,130,246,0.12)' : 'var(--bg2)',
+                            color: editForm.callMode === opt.value ? 'var(--text)' : 'var(--text3)',
+                            fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.15s',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 

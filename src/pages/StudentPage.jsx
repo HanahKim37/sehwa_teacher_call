@@ -112,21 +112,21 @@ export default function StudentPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCall = useCallback(async () => {
-    if (!modalTeacher || modalTeacher.status === 'away') return;
+  const callTeacher = useCallback(async (teacher, nameOverride = '') => {
+    if (!teacher || teacher.status === 'away') return;
     setCalling(true);
     try {
       const displayDuration = groupConfig?.displayDurationSeconds || 30;
       const expireAt = Timestamp.fromMillis(Date.now() + displayDuration * 1000);
       await addDoc(collection(db, 'activeCalls'), {
         groupId: state.groupId,
-        teacherId: modalTeacher.id,
-        teacherName: modalTeacher.teacherName,
-        studentName: studentName.trim() || '',
+        teacherId: teacher.id,
+        teacherName: teacher.teacherName,
+        studentName: nameOverride.trim() || '',
         createdAt: serverTimestamp(),
         expireAt,
       });
-      setSuccessName(modalTeacher.teacherName);
+      setSuccessName(teacher.teacherName);
       setModalTeacher(null);
       setStudentName('');
       setShowSuccess(true);
@@ -135,12 +135,20 @@ export default function StudentPage() {
       console.error('Call failed:', err);
     }
     setCalling(false);
-  }, [modalTeacher, studentName, state?.groupId, groupConfig]);
+  }, [groupConfig, state?.groupId]);
+
+  const handleCall = useCallback(() => {
+    callTeacher(modalTeacher, studentName);
+  }, [callTeacher, modalTeacher, studentName]);
 
   function openModal(teacher) {
     if (teacher.status === 'away') return;
-    setStudentName('');
-    setModalTeacher(teacher);
+    if (groupConfig?.callMode === 'instant') {
+      callTeacher(teacher);
+    } else {
+      setStudentName('');
+      setModalTeacher(teacher);
+    }
   }
 
   function closeModal() {
