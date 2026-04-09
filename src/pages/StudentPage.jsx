@@ -8,6 +8,33 @@ import { db } from '../lib/firebase.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useFullscreen } from '../hooks/useFullscreen.js';
 
+// 레이아웃 그리드 전용 교사 버튼 — 카드 크기에 맞게 글씨가 커짐
+function GridTeacherBtn({ teacher, onOpen, gridCols }) {
+  // 열 수가 많을수록 글씨 작게, 적을수록 크게
+  const nameSizeMap = { 1: '2.6rem', 2: '2.2rem', 3: '1.9rem', 4: '1.6rem', 5: '1.4rem', 6: '1.2rem', 7: '1.05rem', 8: '0.95rem' };
+  const subSizeMap  = { 1: '1.4rem',  2: '1.2rem',  3: '1.1rem',  4: '1rem',   5: '0.9rem',  6: '0.85rem', 7: '0.8rem',  8: '0.75rem' };
+  const nameSize = nameSizeMap[gridCols] || '1rem';
+  const subSize  = subSizeMap[gridCols]  || '0.8rem';
+
+  return (
+    <button
+      className={`teacher-btn ${teacher.status === 'away' ? 'away' : 'available'}`}
+      onClick={() => onOpen(teacher)}
+      disabled={teacher.status === 'away'}
+      type="button"
+      style={{ height: '100%', minHeight: 0 }}
+    >
+      <span style={{ fontSize: nameSize, fontWeight: 900, whiteSpace: 'nowrap', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+        {teacher.teacherName}
+      </span>
+      <span style={{ fontSize: subSize, fontWeight: 500, opacity: teacher.status === 'away' ? 0.5 : 0.75 }}>
+        선생님
+      </span>
+      {teacher.status === 'away' && <span className="away-badge">부재중</span>}
+    </button>
+  );
+}
+
 export default function StudentPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -199,37 +226,13 @@ export default function StudentPage() {
             }}>
               {cells.map(({ col, row, teacher }) =>
                 teacher ? (
-                  <button
-                    key={teacher.id}
-                    className={`teacher-btn ${teacher.status === 'away' ? 'away' : 'available'}`}
-                    onClick={() => openModal(teacher)}
-                    disabled={teacher.status === 'away'}
-                    type="button"
-                    style={{ height: '100%', minHeight: 0, padding: '8px 6px' }}
-                  >
-                    <span style={{ fontSize: '1.3rem' }}>{teacher.status === 'away' ? '🚫' : '👨‍🏫'}</span>
-                    <span style={{ fontWeight: 700 }}>{teacher.teacherName}</span>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 400 }}>선생님</span>
-                    {teacher.status === 'away' && <span className="away-badge">부재중</span>}
-                  </button>
+                  <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} gridCols={gridCols} />
                 ) : (
                   <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
                 )
               )}
               {unpositioned.map(t => (
-                <button
-                  key={t.id}
-                  className={`teacher-btn ${t.status === 'away' ? 'away' : 'available'}`}
-                  onClick={() => openModal(t)}
-                  disabled={t.status === 'away'}
-                  type="button"
-                  style={{ height: '100%', minHeight: 0, padding: '8px 6px' }}
-                >
-                  <span style={{ fontSize: '1.3rem' }}>{t.status === 'away' ? '🚫' : '👨‍🏫'}</span>
-                  <span style={{ fontWeight: 700 }}>{t.teacherName}</span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 400 }}>선생님</span>
-                  {t.status === 'away' && <span className="away-badge">부재중</span>}
-                </button>
+                <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} gridCols={gridCols} />
               ))}
             </div>
           ) : (
