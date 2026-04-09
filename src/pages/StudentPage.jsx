@@ -199,7 +199,8 @@ export default function StudentPage() {
                         type="button"
                       >
                         <span style={{ fontSize: '1.5rem' }}>{teacher.status === 'away' ? '🚫' : '👨‍🏫'}</span>
-                        <span>{teacher.teacherName} 선생님</span>
+                        <span style={{ fontWeight: 700 }}>{teacher.teacherName}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>선생님</span>
                         {teacher.status === 'away' && <span className="away-badge">부재중</span>}
                       </button>
                     ) : (
@@ -215,7 +216,8 @@ export default function StudentPage() {
                       type="button"
                     >
                       <span style={{ fontSize: '1.5rem' }}>{t.status === 'away' ? '🚫' : '👨‍🏫'}</span>
-                      <span>{t.teacherName} 선생님</span>
+                      <span style={{ fontWeight: 700 }}>{t.teacherName}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>선생님</span>
                       {t.status === 'away' && <span className="away-badge">부재중</span>}
                     </button>
                   ))}
@@ -235,7 +237,8 @@ export default function StudentPage() {
                     type="button"
                   >
                     <span style={{ fontSize: '1.5rem' }}>{t.status === 'away' ? '🚫' : '👨‍🏫'}</span>
-                    <span>{t.teacherName} 선생님</span>
+                    <span style={{ fontWeight: 700 }}>{t.teacherName}</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>선생님</span>
                     {t.status === 'away' && <span className="away-badge">부재중</span>}
                   </button>
                 ))}
