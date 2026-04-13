@@ -228,7 +228,7 @@ export default function StudentPage() {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
         {/* 왼쪽: 교사 버튼 그리드 */}
-        <div style={{ flex: 1, padding: '20px 20px 20px 24px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0, padding: '20px 20px 20px 24px', overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="section-label" style={{ marginBottom: 0 }}>선생님 선택</div>
 
           {teachers.length === 0 ? (
@@ -262,6 +262,7 @@ export default function StudentPage() {
               // 꽉 채우기 모드(기본) — 화면에 딱 맞게 강제
               <div style={{
                 flex: 1,
+                minWidth: 0,
                 display: 'grid',
                 gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${gridRows}, 1fr)`,
