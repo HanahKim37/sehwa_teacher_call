@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   collection, query, where, onSnapshot,
-  addDoc, serverTimestamp, Timestamp
+  addDoc, deleteDoc, doc, serverTimestamp, Timestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
@@ -119,10 +119,15 @@ export default function StudentPage() {
     return unsub;
   }, [state?.groupId]);
 
-  // 만료된 호출 주기적 제거
+  // 만료된 호출 주기적 제거 + Firestore 삭제
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveCalls(prev => prev.filter(c => c.expireAt && c.expireAt.toMillis() > Date.now()));
+      setActiveCalls(prev => {
+        const now = Date.now();
+        const expired = prev.filter(c => !c.expireAt || c.expireAt.toMillis() <= now);
+        expired.forEach(c => deleteDoc(doc(db, 'activeCalls', c.id)).catch(() => {}));
+        return prev.filter(c => c.expireAt && c.expireAt.toMillis() > now);
+      });
     }, 5000);
     return () => clearInterval(interval);
   }, []);

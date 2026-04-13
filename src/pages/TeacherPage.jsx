@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   collection, query, where, onSnapshot,
-  doc, updateDoc, Timestamp
+  doc, updateDoc, deleteDoc, Timestamp
 } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
@@ -161,7 +161,10 @@ export default function TeacherPage() {
       const allCalls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
       // 서버 타임스탬프로 기기 시계 보정 (MDM 등으로 시계가 틀어진 기기 대응)
-      const withTs = allCalls.filter(c => c.createdAt?.toMillis);
+      // 로컬 시각 기준 6분 이내 호출만 앵커로 사용 — 오래된 호출로 앵커 잡히면 serverNow()가 과거 반환하는 버그 방지
+      const withTs = allCalls.filter(c =>
+        c.createdAt?.toMillis && Date.now() - c.createdAt.toMillis() < 6 * 60 * 1000
+      );
       if (withTs.length > 0) {
         const latest = withTs.reduce((a, b) =>
           a.createdAt.toMillis() > b.createdAt.toMillis() ? a : b
@@ -169,7 +172,13 @@ export default function TeacherPage() {
         serverAnchorRef.current = { serverMs: latest.createdAt.toMillis(), localMs: Date.now() };
       }
 
-      const calls = allCalls.filter(c => c.expireAt && c.expireAt.toMillis() > serverNow());
+      const now = serverNow();
+      const calls = allCalls.filter(c => c.expireAt && c.expireAt.toMillis() > now);
+
+      // 만료된 호출은 Firestore에서 즉시 삭제 (누적 방지)
+      allCalls
+        .filter(c => !c.expireAt || c.expireAt.toMillis() <= now)
+        .forEach(c => deleteDoc(doc(db, 'activeCalls', c.id)).catch(() => {}));
 
       // 새 호출 감지 → 딩동 + TTS (첫 로드 시 기존 호출은 무시)
       const currentIds = new Set(calls.map(c => c.id));
@@ -188,10 +197,15 @@ export default function TeacherPage() {
     return unsub;
   }, [state?.groupId]);
 
-  // Prune expired calls
+  // Prune expired calls + Firestore 삭제
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveCalls(prev => prev.filter(c => c.expireAt && c.expireAt.toMillis() > serverNow()));
+      setActiveCalls(prev => {
+        const now = serverNow();
+        const expired = prev.filter(c => !c.expireAt || c.expireAt.toMillis() <= now);
+        expired.forEach(c => deleteDoc(doc(db, 'activeCalls', c.id)).catch(() => {}));
+        return prev.filter(c => c.expireAt && c.expireAt.toMillis() > now);
+      });
     }, 3000);
     return () => clearInterval(interval);
   }, [serverNow]);
