@@ -8,6 +8,9 @@ import { db } from '../lib/firebase.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useFullscreen } from '../hooks/useFullscreen.js';
 
+// '.'을 공백으로 치환해서 화면에 표시할 이름 정리
+const cleanName = (name) => name.split('.').join(' ').replace(/\s+/g, ' ').trim();
+
 // 딩동 + TTS 안내
 function playChimeAndAnnounce(teacherNames = []) {
   // 딩동 차임
@@ -78,7 +81,7 @@ function CallCard({ call, displayDuration }) {
 
   return (
     <div className="call-card">
-      <div className="teacher-name">{call.teacherName}</div>
+      <div className="teacher-name">{cleanName(call.teacherName)}</div>
       {call.studentName && (
         <div className="student-name">👤 {call.studentName} 학생</div>
       )}
@@ -173,7 +176,7 @@ export default function TeacherPage() {
       if (!initialLoadRef.current) {
         const newCalls = calls.filter(c => !prevCallIdsRef.current.has(c.id));
         if (newCalls.length > 0) {
-          const names = [...new Set(newCalls.map(c => c.teacherName))];
+          const names = [...new Set(newCalls.map(c => cleanName(c.teacherName)))];
           playChimeAndAnnounce(names);
         }
       }
@@ -267,7 +270,7 @@ export default function TeacherPage() {
             ) : (
               teachers.map(t => (
                 <div key={t.id} className={`status-item ${t.status === 'away' ? 'away' : ''}`}>
-                  <span className="status-item-name">{t.teacherName} 선생님</span>
+                  <span className="status-item-name">{cleanName(t.teacherName)} 선생님</span>
                   <button
                     className={`status-toggle ${t.status === 'away' ? 'away' : 'available'}`}
                     onClick={() => toggleStatus(t)}

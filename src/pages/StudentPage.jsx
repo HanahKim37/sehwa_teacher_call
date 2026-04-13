@@ -8,6 +8,9 @@ import { db } from '../lib/firebase.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useFullscreen } from '../hooks/useFullscreen.js';
 
+// '.'을 공백으로 치환해서 화면에 표시할 이름 정리
+const cleanName = (name) => name.split('.').join(' ').replace(/\s+/g, ' ').trim();
+
 // 레이아웃 그리드 전용 교사 버튼
 // - '.'을 줄바꿈 구분자로 처리 (예: "홍길동.(교감)" → 홍길동 / (교감) / 선생님)
 // - cqw/cqh로 셀 너비·높이 양쪽 모두 넘치지 않는 최대 글씨 크기 자동 계산
@@ -136,7 +139,7 @@ export default function StudentPage() {
         createdAt: serverTimestamp(),
         expireAt,
       });
-      setSuccessName(teacher.teacherName);
+      setSuccessName(cleanName(teacher.teacherName));
       setModalTeacher(null);
       setStudentName('');
       setShowSuccess(true);
@@ -236,15 +239,15 @@ export default function StudentPage() {
           ) : hasLayout ? (
             // 배치 레이아웃 있음
             layoutOverflow === 'scroll' ? (
-              // 좌우 스크롤 모드 — 버튼 최소 너비 유지
-              <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden' }}>
+              // 좌우 스크롤 모드 — 행은 항상 높이 꽉 채움, 가로만 스크롤
+              <div style={{ flex: 1, minWidth: 0, overflowX: 'auto', overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{
+                  flex: 1,
                   display: 'grid',
                   gridTemplateColumns: `repeat(${gridCols}, minmax(140px, 1fr))`,
                   gridTemplateRows: `repeat(${gridRows}, 1fr)`,
                   gap: 10,
                   minWidth: `${gridCols * 140 + (gridCols - 1) * 10}px`,
-                  height: '100%',
                 }}>
                   {cells.map(({ col, row, teacher }) =>
                     teacher ? (
@@ -293,7 +296,7 @@ export default function StudentPage() {
                   type="button"
                 >
                   <span style={{ fontSize: '1.5rem' }}>{t.status === 'away' ? '🚫' : '👨‍🏫'}</span>
-                  <span style={{ fontWeight: 700 }}>{t.teacherName}</span>
+                  <span style={{ fontWeight: 700 }}>{cleanName(t.teacherName)}</span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>선생님</span>
                   {t.status === 'away' && <span className="away-badge">부재중</span>}
                 </button>
@@ -323,7 +326,7 @@ export default function StudentPage() {
             ) : (
               callingTeacherNames.map(name => (
                 <div key={name} className="call-chip" style={{ justifyContent: 'flex-start' }}>
-                  {name} 선생님
+                  {cleanName(name)} 선생님
                 </div>
               ))
             )}
@@ -365,7 +368,7 @@ export default function StudentPage() {
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
               <div style={{ fontSize: '0.8rem', color: 'var(--text3)', marginBottom: 6, letterSpacing: '0.1em' }}>호출할 선생님</div>
               <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-                {modalTeacher.teacherName} 선생님
+                {cleanName(modalTeacher.teacherName)} 선생님
               </div>
             </div>
 
