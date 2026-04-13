@@ -14,13 +14,14 @@ const cleanName = (name) => name.split('.').join(' ').replace(/\s+/g, ' ').trim(
 // 레이아웃 그리드 전용 교사 버튼
 // - '.'을 줄바꿈 구분자로 처리 (예: "홍길동.(교감)" → 홍길동 / (교감) / 선생님)
 // - cqw/cqh로 셀 너비·높이 양쪽 모두 넘치지 않는 최대 글씨 크기 자동 계산
-function GridTeacherBtn({ teacher, onOpen }) {
+function GridTeacherBtn({ teacher, onOpen, isCalling }) {
   const segments = teacher.teacherName.split('.');
   const maxLen = Math.max(...segments.map(s => s.length), 1);
   const numSegs = segments.length;
 
-  // 너비 기반: 가장 긴 세그먼트 글자 수에 맞게
-  const cqwVal = Math.max(6, Math.min(40, Math.round(80 / maxLen)));
+  // 너비 기반: 3글자 기준(27cqw)으로 상한 고정 — 짧은 이름도 3글자와 같은 크기,
+  // 더 긴 이름만 넘치지 않도록 자동으로 줄어듦
+  const cqwVal = Math.max(6, Math.min(27, Math.round(80 / maxLen)));
   // 높이 기반: (이름 줄 수 + 선생님) × lineHeight 가 셀 높이에 맞게
   const cqhVal = Math.max(5, Math.min(42, Math.round(80 / (1.2 * (numSegs + 0.58)))));
 
@@ -29,9 +30,9 @@ function GridTeacherBtn({ teacher, onOpen }) {
 
   return (
     <button
-      className={`teacher-btn teacher-btn-grid ${teacher.status === 'away' ? 'away' : 'available'}`}
+      className={`teacher-btn teacher-btn-grid ${teacher.status === 'away' ? 'away' : isCalling ? 'calling' : 'available'}`}
       onClick={() => onOpen(teacher)}
-      disabled={teacher.status === 'away'}
+      disabled={teacher.status === 'away' || isCalling}
       type="button"
       style={{ height: '100%', minHeight: 0, width: '100%', overflow: 'hidden' }}
     >
@@ -40,10 +41,11 @@ function GridTeacherBtn({ teacher, onOpen }) {
           <span key={i} style={{ display: 'block' }}>{seg}</span>
         ))}
       </span>
-      <span style={{ fontSize: subSize, fontWeight: 500, opacity: teacher.status === 'away' ? 0.5 : 0.75 }}>
+      <span style={{ fontSize: subSize, fontWeight: 500, opacity: (teacher.status === 'away' || isCalling) ? 0.6 : 0.75 }}>
         선생님
       </span>
       {teacher.status === 'away' && <span className="away-badge">부재중</span>}
+      {isCalling && <span className="away-badge" style={{ background: 'rgba(59,130,246,0.18)', color: 'var(--accent)', borderColor: 'var(--accent)' }}>호출 중</span>}
     </button>
   );
 }
@@ -127,6 +129,8 @@ export default function StudentPage() {
 
   const callTeacher = useCallback(async (teacher, nameOverride = '') => {
     if (!teacher || teacher.status === 'away') return;
+    // 표시 기간 중 동일 선생님 재호출 방지
+    if (activeCalls.some(c => c.teacherId === teacher.id)) return;
     setCalling(true);
     try {
       const displayDuration = groupConfig?.displayDurationSeconds || 30;
@@ -148,7 +152,7 @@ export default function StudentPage() {
       console.error('Call failed:', err);
     }
     setCalling(false);
-  }, [groupConfig, state?.groupId]);
+  }, [groupConfig, state?.groupId, activeCalls]);
 
   const handleCall = useCallback(() => {
     callTeacher(modalTeacher, studentName);
@@ -156,6 +160,7 @@ export default function StudentPage() {
 
   function openModal(teacher) {
     if (teacher.status === 'away') return;
+    if (callingTeacherIds.has(teacher.id)) return; // 이미 호출 중
     if (groupConfig?.callMode === 'instant') {
       callTeacher(teacher);
     } else {
@@ -176,6 +181,7 @@ export default function StudentPage() {
   const gridRows = groupConfig?.gridRows || null;
   const layoutOverflow = groupConfig?.teacherLayoutOverflow || 'fit';
   const callingTeacherNames = [...new Set(activeCalls.map(c => c.teacherName))];
+  const callingTeacherIds = new Set(activeCalls.map(c => c.teacherId));
 
   // 레이아웃 배치된 교사 그리드 계산
   let cells = [];
@@ -251,13 +257,13 @@ export default function StudentPage() {
                 }}>
                   {cells.map(({ col, row, teacher }) =>
                     teacher ? (
-                      <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} />
+                      <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} isCalling={callingTeacherIds.has(teacher.id)} />
                     ) : (
                       <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
                     )
                   )}
                   {unpositioned.map(t => (
-                    <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} />
+                    <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} isCalling={callingTeacherIds.has(t.id)} />
                   ))}
                 </div>
               </div>
@@ -274,13 +280,13 @@ export default function StudentPage() {
               }}>
                 {cells.map(({ col, row, teacher }) =>
                   teacher ? (
-                    <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} />
+                    <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} isCalling={callingTeacherIds.has(teacher.id)} />
                   ) : (
                     <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
                   )
                 )}
                 {unpositioned.map(t => (
-                  <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} />
+                  <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} isCalling={callingTeacherIds.has(t.id)} />
                 ))}
               </div>
             )
@@ -290,15 +296,16 @@ export default function StudentPage() {
               {teachers.map(t => (
                 <button
                   key={t.id}
-                  className={`teacher-btn ${t.status === 'away' ? 'away' : 'available'}`}
+                  className={`teacher-btn ${t.status === 'away' ? 'away' : callingTeacherIds.has(t.id) ? 'calling' : 'available'}`}
                   onClick={() => openModal(t)}
-                  disabled={t.status === 'away'}
+                  disabled={t.status === 'away' || callingTeacherIds.has(t.id)}
                   type="button"
                 >
-                  <span style={{ fontSize: '1.5rem' }}>{t.status === 'away' ? '🚫' : '👨‍🏫'}</span>
+                  <span style={{ fontSize: '1.5rem' }}>{t.status === 'away' ? '🚫' : callingTeacherIds.has(t.id) ? '📢' : '👨‍🏫'}</span>
                   <span style={{ fontWeight: 700 }}>{cleanName(t.teacherName)}</span>
                   <span style={{ fontSize: '0.85rem', fontWeight: 400 }}>선생님</span>
                   {t.status === 'away' && <span className="away-badge">부재중</span>}
+                  {callingTeacherIds.has(t.id) && <span className="away-badge" style={{ background: 'rgba(59,130,246,0.18)', color: 'var(--accent)', borderColor: 'var(--accent)' }}>호출 중</span>}
                 </button>
               ))}
             </div>
