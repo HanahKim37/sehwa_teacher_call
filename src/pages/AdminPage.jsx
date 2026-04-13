@@ -16,10 +16,10 @@ function GroupsTab() {
 
   const [form, setForm] = useState({
     departmentName: '', displayDurationSeconds: 30,
-    code: '', teacherNames: '', callMode: 'modal',
+    code: '', teacherNames: '', callMode: 'modal', teacherLayoutOverflow: 'fit',
   });
   const [editForm, setEditForm] = useState({
-    departmentName: '', displayDurationSeconds: 30, code: '', addTeacherNames: '', callMode: 'modal',
+    departmentName: '', displayDurationSeconds: 30, code: '', addTeacherNames: '', callMode: 'modal', teacherLayoutOverflow: 'fit',
   });
 
   useEffect(() => {
@@ -48,6 +48,7 @@ function GroupsTab() {
         departmentName: deptName,
         displayDurationSeconds: Number(form.displayDurationSeconds) || 30,
         callMode: form.callMode || 'modal',
+        teacherLayoutOverflow: form.teacherLayoutOverflow || 'fit',
         allowStudentNameInput: true, allowAnonymousCall: true, useSound: true,
         createdAt: serverTimestamp(),
       });
@@ -65,7 +66,7 @@ function GroupsTab() {
           createdAt: serverTimestamp(),
         });
       }
-      setForm({ departmentName: '', displayDurationSeconds: 30, code: '', teacherNames: '', callMode: 'modal' });
+      setForm({ departmentName: '', displayDurationSeconds: 30, code: '', teacherNames: '', callMode: 'modal', teacherLayoutOverflow: 'fit' });
     } catch (err) { console.error(err); }
     setLoading(false);
   }
@@ -79,12 +80,13 @@ function GroupsTab() {
       code: groupCode?.code || '',
       addTeacherNames: '',
       callMode: g.callMode || 'modal',
+      teacherLayoutOverflow: g.teacherLayoutOverflow || 'fit',
     });
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setEditForm({ departmentName: '', displayDurationSeconds: 30, code: '', addTeacherNames: '' });
+    setEditForm({ departmentName: '', displayDurationSeconds: 30, code: '', addTeacherNames: '', callMode: 'modal', teacherLayoutOverflow: 'fit' });
   }
 
   async function saveEdit(g) {
@@ -100,6 +102,7 @@ function GroupsTab() {
         departmentName: editForm.departmentName.trim() || g.groupName,
         displayDurationSeconds: Number(editForm.displayDurationSeconds) || 30,
         callMode: editForm.callMode || 'modal',
+        teacherLayoutOverflow: editForm.teacherLayoutOverflow || 'fit',
       });
       if (groupCode) {
         await updateDoc(doc(db, 'accessCodes', groupCode.id), {
@@ -174,6 +177,31 @@ function GroupsTab() {
                   border: `2px solid ${form.callMode === opt.value ? 'var(--accent)' : 'var(--border)'}`,
                   background: form.callMode === opt.value ? 'rgba(59,130,246,0.12)' : 'var(--bg3)',
                   color: form.callMode === opt.value ? 'var(--text)' : 'var(--text3)',
+                  textAlign: 'left', transition: 'all 0.15s',
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: 3 }}>{opt.label}</div>
+                <div style={{ fontSize: '0.72rem', opacity: 0.7 }}>{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="form-group">
+          <label>학생 화면 레이아웃</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { value: 'fit', label: '화면에 꽉 맞추기', desc: '열이 많아도 스크롤 없이 화면에 딱 맞춤' },
+              { value: 'scroll', label: '좌우 스크롤', desc: '버튼 최소 크기 유지, 스크롤로 탐색' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm(p => ({ ...p, teacherLayoutOverflow: opt.value }))}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+                  border: `2px solid ${form.teacherLayoutOverflow === opt.value ? 'var(--accent)' : 'var(--border)'}`,
+                  background: form.teacherLayoutOverflow === opt.value ? 'rgba(59,130,246,0.12)' : 'var(--bg3)',
+                  color: form.teacherLayoutOverflow === opt.value ? 'var(--text)' : 'var(--text3)',
                   textAlign: 'left', transition: 'all 0.15s',
                 }}
               >
@@ -285,6 +313,30 @@ function GroupsTab() {
                             border: `2px solid ${editForm.callMode === opt.value ? 'var(--accent)' : 'var(--border)'}`,
                             background: editForm.callMode === opt.value ? 'rgba(59,130,246,0.12)' : 'var(--bg2)',
                             color: editForm.callMode === opt.value ? 'var(--text)' : 'var(--text3)',
+                            fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.15s',
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 12 }}>
+                    <label>학생 화면 레이아웃</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {[
+                        { value: 'fit', label: '화면에 꽉 맞추기' },
+                        { value: 'scroll', label: '좌우 스크롤' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setEditForm(p => ({ ...p, teacherLayoutOverflow: opt.value }))}
+                          style={{
+                            flex: 1, padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
+                            border: `2px solid ${editForm.teacherLayoutOverflow === opt.value ? 'var(--accent)' : 'var(--border)'}`,
+                            background: editForm.teacherLayoutOverflow === opt.value ? 'rgba(59,130,246,0.12)' : 'var(--bg2)',
+                            color: editForm.teacherLayoutOverflow === opt.value ? 'var(--text)' : 'var(--text3)',
                             fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.15s',
                           }}
                         >

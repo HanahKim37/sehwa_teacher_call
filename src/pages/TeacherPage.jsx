@@ -13,13 +13,25 @@ function playChimeAndAnnounce(teacherNames = []) {
   // 딩동 차임
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // 마스터 볼륨 증폭 + 컴프레서(클리핑 방지)
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 3.0;
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -6;
+    compressor.knee.value = 3;
+    compressor.ratio.value = 4;
+    compressor.attack.value = 0.001;
+    compressor.release.value = 0.25;
+    masterGain.connect(compressor);
+    compressor.connect(ctx.destination);
+
     const times = [0, 0.35, 0.65];
     const freqs = [659, 784, 880];
     times.forEach((t, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(masterGain);
       osc.frequency.value = freqs[i];
       osc.type = 'sine';
       gain.gain.setValueAtTime(1.0, ctx.currentTime + t);

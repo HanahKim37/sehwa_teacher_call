@@ -11,10 +11,10 @@ import { useFullscreen } from '../hooks/useFullscreen.js';
 // 레이아웃 그리드 전용 교사 버튼 — 카드 크기에 맞게 글씨가 커짐
 function GridTeacherBtn({ teacher, onOpen, gridCols }) {
   // 열 수가 많을수록 글씨 작게, 적을수록 크게
-  const nameSizeMap = { 1: '6rem', 2: '5rem', 3: '4.2rem', 4: '3.6rem', 5: '3rem', 6: '2.6rem', 7: '2.2rem', 8: '2rem' };
-  const subSizeMap  = { 1: '3rem', 2: '2.6rem', 3: '2.2rem', 4: '2rem', 5: '1.7rem', 6: '1.5rem', 7: '1.3rem', 8: '1.2rem' };
-  const nameSize = nameSizeMap[gridCols] || '1rem';
-  const subSize  = subSizeMap[gridCols]  || '0.8rem';
+  const nameSizeMap = { 1: '6rem', 2: '5rem', 3: '4.2rem', 4: '3.6rem', 5: '3rem', 6: '2.6rem', 7: '2.2rem', 8: '2rem', 9: '1.8rem', 10: '1.6rem' };
+  const subSizeMap  = { 1: '3rem', 2: '2.6rem', 3: '2.2rem', 4: '2rem', 5: '1.7rem', 6: '1.5rem', 7: '1.3rem', 8: '1.2rem', 9: '1.1rem', 10: '1rem' };
+  const nameSize = nameSizeMap[gridCols] || '1.4rem';
+  const subSize  = subSizeMap[gridCols]  || '0.85rem';
 
   return (
     <button
@@ -22,9 +22,9 @@ function GridTeacherBtn({ teacher, onOpen, gridCols }) {
       onClick={() => onOpen(teacher)}
       disabled={teacher.status === 'away'}
       type="button"
-      style={{ height: '100%', minHeight: 0 }}
+      style={{ height: '100%', minHeight: 0, width: '100%', overflow: 'hidden' }}
     >
-      <span style={{ fontSize: nameSize, fontWeight: 900, whiteSpace: 'nowrap', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+      <span style={{ fontSize: nameSize, fontWeight: 900, wordBreak: 'keep-all', textAlign: 'center', letterSpacing: '-0.02em', lineHeight: 1.1, maxWidth: '100%' }}>
         {teacher.teacherName}
       </span>
       <span style={{ fontSize: subSize, fontWeight: 500, opacity: teacher.status === 'away' ? 0.5 : 0.75 }}>
@@ -161,6 +161,7 @@ export default function StudentPage() {
   const hasLayout = groupConfig?.gridCols && groupConfig?.gridRows;
   const gridCols = groupConfig?.gridCols || null;
   const gridRows = groupConfig?.gridRows || null;
+  const layoutOverflow = groupConfig?.teacherLayoutOverflow || 'fit';
   const callingTeacherNames = [...new Set(activeCalls.map(c => c.teacherName))];
 
   // 레이아웃 배치된 교사 그리드 계산
@@ -223,26 +224,52 @@ export default function StudentPage() {
           {teachers.length === 0 ? (
             <p style={{ color: 'var(--text3)', fontSize: '0.9rem' }}>등록된 선생님이 없습니다.</p>
           ) : hasLayout ? (
-            // 배치 레이아웃 있음 — 화면 꽉 채움
-            <div style={{
-              flex: 1,
-              display: 'grid',
-              gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
-              gridTemplateRows: `repeat(${gridRows}, 1fr)`,
-              gap: 10,
-              overflow: 'hidden',
-            }}>
-              {cells.map(({ col, row, teacher }) =>
-                teacher ? (
-                  <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} gridCols={gridCols} />
-                ) : (
-                  <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
-                )
-              )}
-              {unpositioned.map(t => (
-                <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} gridCols={gridCols} />
-              ))}
-            </div>
+            // 배치 레이아웃 있음
+            layoutOverflow === 'scroll' ? (
+              // 좌우 스크롤 모드 — 버튼 최소 너비 유지
+              <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${gridCols}, minmax(140px, 1fr))`,
+                  gridTemplateRows: `repeat(${gridRows}, 1fr)`,
+                  gap: 10,
+                  minWidth: `${gridCols * 140 + (gridCols - 1) * 10}px`,
+                  height: '100%',
+                }}>
+                  {cells.map(({ col, row, teacher }) =>
+                    teacher ? (
+                      <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} gridCols={gridCols} />
+                    ) : (
+                      <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
+                    )
+                  )}
+                  {unpositioned.map(t => (
+                    <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} gridCols={gridCols} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              // 꽉 채우기 모드(기본) — 화면에 딱 맞게 강제
+              <div style={{
+                flex: 1,
+                display: 'grid',
+                gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${gridRows}, 1fr)`,
+                gap: 10,
+                overflow: 'hidden',
+              }}>
+                {cells.map(({ col, row, teacher }) =>
+                  teacher ? (
+                    <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} gridCols={gridCols} />
+                  ) : (
+                    <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
+                  )
+                )}
+                {unpositioned.map(t => (
+                  <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} gridCols={gridCols} />
+                ))}
+              </div>
+            )
           ) : (
             // 배치 레이아웃 없음 — auto-fill
             <div className="teacher-grid">
