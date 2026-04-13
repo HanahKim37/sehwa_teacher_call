@@ -8,24 +8,34 @@ import { db } from '../lib/firebase.js';
 import { useWakeLock } from '../hooks/useWakeLock.js';
 import { useFullscreen } from '../hooks/useFullscreen.js';
 
-// 레이아웃 그리드 전용 교사 버튼 — 카드 크기에 맞게 글씨가 커짐
-function GridTeacherBtn({ teacher, onOpen, gridCols }) {
-  // 열 수가 많을수록 글씨 작게, 적을수록 크게
-  const nameSizeMap = { 1: '6rem', 2: '5rem', 3: '4.2rem', 4: '3.6rem', 5: '3rem', 6: '2.6rem', 7: '2.2rem', 8: '2rem', 9: '1.8rem', 10: '1.6rem' };
-  const subSizeMap  = { 1: '3rem', 2: '2.6rem', 3: '2.2rem', 4: '2rem', 5: '1.7rem', 6: '1.5rem', 7: '1.3rem', 8: '1.2rem', 9: '1.1rem', 10: '1rem' };
-  const nameSize = nameSizeMap[gridCols] || '1.4rem';
-  const subSize  = subSizeMap[gridCols]  || '0.85rem';
+// 레이아웃 그리드 전용 교사 버튼
+// - '.'을 줄바꿈 구분자로 처리 (예: "홍길동.(교감)" → 홍길동 / (교감) / 선생님)
+// - cqw/cqh로 셀 너비·높이 양쪽 모두 넘치지 않는 최대 글씨 크기 자동 계산
+function GridTeacherBtn({ teacher, onOpen }) {
+  const segments = teacher.teacherName.split('.');
+  const maxLen = Math.max(...segments.map(s => s.length), 1);
+  const numSegs = segments.length;
+
+  // 너비 기반: 가장 긴 세그먼트 글자 수에 맞게
+  const cqwVal = Math.max(6, Math.min(40, Math.round(80 / maxLen)));
+  // 높이 기반: (이름 줄 수 + 선생님) × lineHeight 가 셀 높이에 맞게
+  const cqhVal = Math.max(5, Math.min(42, Math.round(80 / (1.2 * (numSegs + 0.58)))));
+
+  const nameSize = `min(${cqwVal}cqw, ${cqhVal}cqh)`;
+  const subSize  = `min(${Math.max(4, Math.round(cqwVal * 0.58))}cqw, ${Math.max(3, Math.round(cqhVal * 0.58))}cqh)`;
 
   return (
     <button
-      className={`teacher-btn ${teacher.status === 'away' ? 'away' : 'available'}`}
+      className={`teacher-btn teacher-btn-grid ${teacher.status === 'away' ? 'away' : 'available'}`}
       onClick={() => onOpen(teacher)}
       disabled={teacher.status === 'away'}
       type="button"
       style={{ height: '100%', minHeight: 0, width: '100%', overflow: 'hidden' }}
     >
-      <span style={{ fontSize: nameSize, fontWeight: 900, wordBreak: 'keep-all', textAlign: 'center', letterSpacing: '-0.02em', lineHeight: 1.1, maxWidth: '100%' }}>
-        {teacher.teacherName}
+      <span style={{ fontWeight: 900, textAlign: 'center', letterSpacing: '-0.02em', lineHeight: 1.2, fontSize: nameSize }}>
+        {segments.map((seg, i) => (
+          <span key={i} style={{ display: 'block' }}>{seg}</span>
+        ))}
       </span>
       <span style={{ fontSize: subSize, fontWeight: 500, opacity: teacher.status === 'away' ? 0.5 : 0.75 }}>
         선생님
@@ -238,13 +248,13 @@ export default function StudentPage() {
                 }}>
                   {cells.map(({ col, row, teacher }) =>
                     teacher ? (
-                      <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} gridCols={gridCols} />
+                      <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} />
                     ) : (
                       <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
                     )
                   )}
                   {unpositioned.map(t => (
-                    <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} gridCols={gridCols} />
+                    <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} />
                   ))}
                 </div>
               </div>
@@ -260,13 +270,13 @@ export default function StudentPage() {
               }}>
                 {cells.map(({ col, row, teacher }) =>
                   teacher ? (
-                    <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} gridCols={gridCols} />
+                    <GridTeacherBtn key={teacher.id} teacher={teacher} onOpen={openModal} />
                   ) : (
                     <div key={`e-${col}-${row}`} style={{ visibility: 'hidden' }} />
                   )
                 )}
                 {unpositioned.map(t => (
-                  <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} gridCols={gridCols} />
+                  <GridTeacherBtn key={t.id} teacher={t} onOpen={openModal} />
                 ))}
               </div>
             )

@@ -297,6 +297,11 @@ input {
   border: 2px solid transparent;
 }
 
+/* 그리드 레이아웃 전용: 셀 크기 기반 container query 활성화 */
+.teacher-btn-grid {
+  container-type: size;
+}
+
 .teacher-btn.available {
   background: var(--surface);
   color: var(--text);
