@@ -54,7 +54,7 @@ function playChimeAndAnnounce(teacherNames = []) {
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'ko-KR';
       utter.rate = 0.95;
-      utter.pitch = 1.0;
+      utter.pitch = 1.8;
       utter.volume = 1.0;
       window.speechSynthesis.speak(utter);
     }, 1250);
