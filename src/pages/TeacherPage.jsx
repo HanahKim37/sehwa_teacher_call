@@ -91,7 +91,15 @@ export default function TeacherPage() {
   const [activeCalls, setActiveCalls] = useState([]);
   const [groupConfig, setGroupConfig] = useState(null);
   const prevCallIdsRef = useRef(new Set());
-  const now = useRef(Date.now());
+  const initialLoadRef = useRef(true);
+  const serverAnchorRef = useRef(null); // { serverMs, localMs } — 기기 시간 보정용
+
+  // Firestore 서버 시간 기준으로 현재 시각 추정 (기기 시계 오차 보정)
+  const serverNow = useCallback(() => {
+    if (!serverAnchorRef.current) return Date.now();
+    const { serverMs, localMs } = serverAnchorRef.current;
+    return serverMs + (Date.now() - localMs);
+  }, []);
 
   useEffect(() => {
     if (!state?.groupId) navigate('/');
@@ -135,21 +143,29 @@ export default function TeacherPage() {
       where('groupId', '==', state.groupId)
     );
     const unsub = onSnapshot(q, snap => {
-      const calls = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(c => c.expireAt && c.expireAt.toMillis() > Date.now());
+      const allCalls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // 새 호출 감지 → 딩동 + TTS
-      const currentIds = new Set(calls.map(c => c.id));
-      const newCalls = calls.filter(c =>
-        !prevCallIdsRef.current.has(c.id) &&
-        c.createdAt?.toMillis &&
-        c.createdAt.toMillis() > now.current - 5000
-      );
-      if (newCalls.length > 0) {
-        const names = [...new Set(newCalls.map(c => c.teacherName))];
-        playChimeAndAnnounce(names);
+      // 서버 타임스탬프로 기기 시계 보정 (MDM 등으로 시계가 틀어진 기기 대응)
+      const withTs = allCalls.filter(c => c.createdAt?.toMillis);
+      if (withTs.length > 0) {
+        const latest = withTs.reduce((a, b) =>
+          a.createdAt.toMillis() > b.createdAt.toMillis() ? a : b
+        );
+        serverAnchorRef.current = { serverMs: latest.createdAt.toMillis(), localMs: Date.now() };
       }
+
+      const calls = allCalls.filter(c => c.expireAt && c.expireAt.toMillis() > serverNow());
+
+      // 새 호출 감지 → 딩동 + TTS (첫 로드 시 기존 호출은 무시)
+      const currentIds = new Set(calls.map(c => c.id));
+      if (!initialLoadRef.current) {
+        const newCalls = calls.filter(c => !prevCallIdsRef.current.has(c.id));
+        if (newCalls.length > 0) {
+          const names = [...new Set(newCalls.map(c => c.teacherName))];
+          playChimeAndAnnounce(names);
+        }
+      }
+      initialLoadRef.current = false;
       prevCallIdsRef.current = currentIds;
 
       setActiveCalls(calls);
@@ -160,10 +176,10 @@ export default function TeacherPage() {
   // Prune expired calls
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveCalls(prev => prev.filter(c => c.expireAt && c.expireAt.toMillis() > Date.now()));
+      setActiveCalls(prev => prev.filter(c => c.expireAt && c.expireAt.toMillis() > serverNow()));
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [serverNow]);
 
   const toggleStatus = useCallback(async (teacher) => {
     const newStatus = teacher.status === 'available' ? 'away' : 'available';
